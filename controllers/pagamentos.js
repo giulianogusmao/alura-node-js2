@@ -33,9 +33,41 @@ module.exports = (app) => {
         pagamentoDAO.buscaPorId(id, (error, result) => {
             if (error) {
                 console.log(`Erro ao consultar no banco: ${error}`);
-                res.status(500).send(error);
+                res.status(500).json(error);
             } else {
-                res.status(200).json((result || []).pop());
+                res.status(200).json((result || [{}]).pop());
+            }
+        });
+
+        connection.end();
+    });
+
+    app.put(`${route}/pagamento/:id`, (req, res, next) => {
+        const connection = app.models.pagamentoFactory();
+        const pagamentoDAO = new app.models.pagamentoDAO(connection);
+        const id = req.params.id;
+
+        req.assert('id', 'ID não é válido').isFloat();
+        const errors = req.validationErrors();
+
+        if (errors) {
+            res.status(400).json(errors);
+            return next(errors);
+        }
+
+        const pagamento = { 
+            id,
+            status: 'CONFIRMADO',
+            data: new Date
+        };
+
+        pagamentoDAO.atualiza(pagamento, (error, result) => {
+            if (error) {
+                console.log(`Erro ao consultar no banco: ${error}`);
+                res.status(500).json(error);
+            } else {
+                res.location(`${route}/pagamento/${pagamento.id}`);       
+                res.status(200).json(pagamento);
             }
         });
 
@@ -70,9 +102,9 @@ module.exports = (app) => {
         pagamentoDAO.salva(pagamento, (error, result) => {
             if (error) {
                 console.log(`Erro ao inserir no banco: ${error}`);
-                res.status(500).send(error);
+                res.status(500).json(error);
             } else {
-                res.location('/pagamentos/pagamento/' + result.insertId);                
+                res.location(`${route}/pagamento/${result.insertId}`);                
                 pagamento.id = result.insertId; // atualiza o pagamento com o id gravado no banco
                 res.status(201).json(pagamento);
             }
