@@ -17,6 +17,31 @@ module.exports = (app) => {
         connection.end();
     });
 
+    app.get(`${route}/pagamento/:id`, (req, res, next) => {
+        const connection = app.models.pagamentoFactory();
+        const pagamentoDAO = new app.models.pagamentoDAO(connection);
+        const id = req.params.id;
+
+        req.assert('id', 'ID não é válido').isFloat();
+        const errors = req.validationErrors();
+
+        if (errors) {
+            res.status(400).json(errors);
+            return next(errors);
+        }
+
+        pagamentoDAO.buscaPorId(id, (error, result) => {
+            if (error) {
+                console.log(`Erro ao consultar no banco: ${error}`);
+                res.status(500).send(error);
+            } else {
+                res.status(200).json((result || []).pop());
+            }
+        });
+
+        connection.end();
+    });
+
     app.post(`${route}/pagamento`, (req, res, next) => {
         const pagamento = req.body;
 
