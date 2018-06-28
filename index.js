@@ -1,6 +1,6 @@
-var app = require('./config/express')();
+const app = require('./config/express')();
 
-var port = 3000;
-app.listen(port, function() { 
+const port = process.env.NODE_PORT || 3000;
+app.listen(port, () => { 
     console.log('Servidor rodando na porta: ' + port);
 });

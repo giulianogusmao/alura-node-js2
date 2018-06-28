@@ -1,17 +1,18 @@
-module.exports = function(app) {
+module.exports = (app) => {
     var route = '/pagamentos';
 
-    app.get(route, function (request, response) {
-        response.send(JSON.stringify({ pagamentos: "Fulano" }));
-    });
+    app.get(route, (req, res, next) => {
+        const connection = app.models.pagamentoFactory();
+        const pagamentoDAO = new app.models.pagamentoDAO(connection);
 
-    app.post(route + '/pagamento', function(req, res) {
-        var pagamento = req.body;
-        console.log('Processando uma requisicao de um novo pagamento');
+        pagamentoDAO.lista((error, result) => {
+            if (error) {
+                return next(error);
+            }
 
-        pagamento.status = 'criado';
-        pagamento.data = new Date();
+            res.json(result);
+        });
 
-        res.send(pagamento);
+        connection.end();
     });
 }
