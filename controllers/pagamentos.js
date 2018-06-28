@@ -7,6 +7,7 @@ module.exports = (app) => {
 
         pagamentoDAO.lista((error, result) => {
             if (error) {
+                res.status(500).json({ error });
                 return next(error);
             }
 
@@ -24,12 +25,34 @@ module.exports = (app) => {
         req.assert("valor", "Valor é obrigatório e deve ser um decimal.").notEmpty().isFloat();
         req.assert("moeda", "Moeda é obrigatória e deve ter 3 caracteres").notEmpty().len(3, 3);
         const errors = req.validationErrors();
-        
+
         if (errors) {
             res.status(400).json({ errors, pagamento });
-            return;
+            return next(errors);
         }
-        
-        res.json({ 'pagamento': 'recebido' });
+
+        /**
+         * Após realizar todas as validações
+         * altera o status do pagamento para criado, atualiza data do pagamento
+         * e realiza o cadastro;
+         */
+        pagamento.status = "CRIADO";
+        pagamento.data = new Date;
+
+        const connection = app.models.pagamentoFactory();
+        const pagamentoDAO = new app.models.pagamentoDAO(connection);
+
+        pagamentoDAO.salva(pagamento, (error, result) => {
+            if (error) {
+                console.log(`Erro ao inserir no banco: ${error}`);
+                res.status(500).send(error);
+            } else {
+                res.location('/pagamentos/pagamento/' + result.insertId);                
+                pagamento.id = result.insertId; // atualiza o pagamento com o id gravado no banco
+                res.status(201).json(pagamento);
+            }
+        });
+
+        connection.end();
     });
 }
