@@ -1,0 +1,13 @@
+{
+    "forma_de_pagamento": "cartao",
+    "valor": 35.1,
+    "moeda": "BRL",
+    "descricao": "criando um pagamento",
+    "cartao": {
+        "numero": 3214654132159874,
+        "bandeira": "visa",
+        "ano_de_expiracao": 2021,
+        "mes_de_expiracao": 4,
+        "cvv": 581
+    }
+}

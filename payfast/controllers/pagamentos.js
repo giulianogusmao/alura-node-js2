@@ -2,6 +2,7 @@ module.exports = (app) => {
     var route = '/pagamentos',
         action = '/pagamento';
 
+    // Lista todos os pagamentos
     app.get(route, (req, res, next) => {
         const connection = app.models.pagamentoFactory();
         const pagamentoDAO = new app.models.pagamentoDAO(connection);
@@ -18,6 +19,7 @@ module.exports = (app) => {
         connection.end();
     });
 
+    // Detalhe do pagamento :id
     app.get(`${route + action}/:id`, (req, res, next) => {
         const connection = app.models.pagamentoFactory();
         const pagamentoDAO = new app.models.pagamentoDAO(connection);
@@ -43,6 +45,7 @@ module.exports = (app) => {
         connection.end();
     });
 
+    // Confirmar pagamento -> alterar status para confirmado
     app.put(`${route + action}/:id`, (req, res, next) => {
         const id = req.params.id;
 
@@ -54,7 +57,7 @@ module.exports = (app) => {
             return next(errors);
         }
 
-        const pagamento = { 
+        const pagamento = {
             id,
             status: 'CONFIRMADO',
             data: new Date
@@ -67,7 +70,7 @@ module.exports = (app) => {
                 console.log(`Erro ao consultar id:${id} no banco: ${error}`);
                 res.status(500).json(error);
             } else {
-                res.location(`${route + action}/${pagamento.id}`);       
+                res.location(`${route + action}/${pagamento.id}`);
                 res.status(200).json(pagamento);
             }
         });
@@ -75,6 +78,7 @@ module.exports = (app) => {
         connection.end();
     });
 
+    // Cancelar pagamento -> alterar status para cancelado
     app.delete(`${route + action}/:id`, (req, res, next) => {
         const id = req.params.id;
 
@@ -106,6 +110,7 @@ module.exports = (app) => {
         connection.end();
     });
 
+    // Cadastrar novo pagamento -> cadastra um pagamento com status criado
     app.post(`${route + action}`, (req, res, next) => {
         const pagamento = req.body;
 
@@ -128,20 +133,40 @@ module.exports = (app) => {
         pagamento.status = "CRIADO";
         pagamento.data = new Date;
 
-        const connection = app.models.pagamentoFactory();
-        const pagamentoDAO = new app.models.pagamentoDAO(connection);
+        switch (pagamento.forma_de_pagamento) {
+            case "cartao":
+                console.log('Processando pagamento cartao...');
+                const cartaoService = new app.services.cartoesService();
+                cartaoService.autoriza(pagamento.cartao, (error, response) => {
+                    if (error) {
+                        res.status(error.statusCode).json(error.msgError);
+                        return next(error);
+                    }
 
-        pagamentoDAO.salva(pagamento, (error, result) => {
-            if (error) {
-                console.log(`Erro ao inserir no banco: ${error}`);
-                res.status(500).json(error);
-            } else {
-                res.location(`${route + action}/${result.insertId}`);                
-                pagamento.id = result.insertId; // atualiza o pagamento com o id gravado no banco
-                res.status(201).json(pagamento);
-            }
-        });
+                    res.json(response);
+                    return;
+                });
+                break;
+            default:
+                res.json(pagamento);
+        }
 
-        connection.end();
+
+        // const connection = app.models.pagamentoFactory();
+        // const pagamentoDAO = new app.models.pagamentoDAO(connection);
+
+        // pagamentoDAO.salva(pagamento, (error, result) => {
+        //     if (error) {
+        //         console.log(`Erro ao inserir no banco: ${error}`);
+        //         res.status(500).json(error);
+        //     } else {
+        //         res.location(`${route + action}/${result.insertId}`);
+        //         pagamento.id = result.insertId; // atualiza o pagamento com o id gravado no banco
+        //         res.status(201).json(pagamento);
+        //     }
+        // });
+
+        // connection.end();
+        // res.json(pagamento);
     });
 }
