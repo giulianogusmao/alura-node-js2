@@ -2,8 +2,20 @@ function PagamentoDAO(connection) {
     this._connection = connection;
 }
 
-PagamentoDAO.prototype.salva = function (cartao, callback) {
-    this._connection.query('INSERT INTO pagamentos SET ?', cartao, callback);
+PagamentoDAO.prototype.salva = function (pagamento, callback) {
+    this._connection.query(`
+        INSERT INTO pagamentos
+            (forma_de_pagamento, valor, moeda, status, data, descricao)
+        values
+            (?, ?, ?, ?, ?, ?)
+        `, [
+            pagamento.forma_de_pagamento,
+            pagamento.valor,
+            pagamento.moeda,
+            pagamento.status,
+            pagamento.data,
+            pagamento.descricao
+        ], callback);
 }
 
 PagamentoDAO.prototype.lista = function (callback) {
@@ -14,12 +26,12 @@ PagamentoDAO.prototype.buscaPorId = function (id, callback) {
     this._connection.query("SELECT * FROM pagamentos WHERE id = ?", [id], callback);
 }
 
-PagamentoDAO.prototype.atualiza = function (cartao, callback) {
+PagamentoDAO.prototype.atualiza = function (pagamento, callback) {
     this._connection.query(
-        `UPDATE pagamentos 
-        SET status = ?, data = ? 
+        `UPDATE pagamentos
+        SET status = ?, data = ?
         WHERE id = ?`,
-        [cartao.status, cartao.data, cartao.id], callback);
+        [pagamento.status, pagamento.data, pagamento.id], callback);
 }
 
 module.exports = () => {

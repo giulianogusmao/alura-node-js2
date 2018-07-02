@@ -1,13 +1,9 @@
-module.exports = (app) => {
-    var route = '/pagamentos',
-        action = '/pagamento';
+function PagamentoController(app) {
+    this._pagamentoService = new app.services.pagamentosService(app);
 
     // Lista todos os pagamentos
-    app.get(route, (req, res, next) => {
-        const connection = app.models.pagamentoFactory();
-        const pagamentoDAO = new app.models.pagamentoDAO(connection);
-
-        pagamentoDAO.lista((error, result) => {
+    this.lista = (req, res, next) => {
+        this._pagamentoService.lista((error, result) => {
             if (error) {
                 res.status(500).json({ error });
                 return next(error);
@@ -15,14 +11,10 @@ module.exports = (app) => {
 
             res.json(result);
         });
-
-        connection.end();
-    });
+    };
 
     // Detalhe do pagamento :id
-    app.get(`${route + action}/:id`, (req, res, next) => {
-        const connection = app.models.pagamentoFactory();
-        const pagamentoDAO = new app.models.pagamentoDAO(connection);
+    this.detalhe = (req, res, next) => {
         const id = req.params.id;
 
         req.assert('id', 'ID não é válido').isFloat();
@@ -33,7 +25,7 @@ module.exports = (app) => {
             return next(errors);
         }
 
-        pagamentoDAO.buscaPorId(id, (error, result) => {
+        this._pagamentoService.buscaById(id, (error, result) => {
             if (error) {
                 console.log(`Erro ao consultar no banco: ${error}`);
                 res.status(500).json(error);
@@ -41,12 +33,10 @@ module.exports = (app) => {
                 res.status(200).json((result || [{}]).pop());
             }
         });
-
-        connection.end();
-    });
+    };
 
     // Confirmar pagamento -> alterar status para confirmado
-    app.put(`${route + action}/:id`, (req, res, next) => {
+    this.confirma = (req, res, next) => {
         const id = req.params.id;
 
         req.assert('id', 'ID não é válido').isFloat();
@@ -63,23 +53,19 @@ module.exports = (app) => {
             data: new Date
         };
 
-        const connection = app.models.pagamentoFactory();
-        const pagamentoDAO = new app.models.pagamentoDAO(connection);
-        pagamentoDAO.atualiza(pagamento, (error) => {
+        this._pagamentoService.atualiza(pagamento, (error) => {
             if (error) {
                 console.log(`Erro ao consultar id:${id} no banco: ${error}`);
                 res.status(500).json(error);
             } else {
-                res.location(`${route + action}/${pagamento.id}`);
+                res.location(`pagamentos/pagamento/${pagamento.id}`);
                 res.status(200).json(pagamento);
             }
         });
-
-        connection.end();
-    });
+    };
 
     // Cancelar pagamento -> alterar status para cancelado
-    app.delete(`${route + action}/:id`, (req, res, next) => {
+    this.cancela = (req, res, next) => {
         const id = req.params.id;
 
         req.assert('id', 'ID não é válido').isFloat();
@@ -96,9 +82,7 @@ module.exports = (app) => {
             data: new Date
         };
 
-        const connection = app.models.pagamentoFactory();
-        const pagamentoDAO = new app.models.pagamentoDAO(connection);
-        pagamentoDAO.atualiza(pagamento, (error) => {
+        this._pagamentoService.atualiza(pagamento, (error) => {
             if (error) {
                 console.log(`Erro ao cancelar id:${id} no banco: ${error}`);
                 res.status(500).json(error);
@@ -106,13 +90,23 @@ module.exports = (app) => {
                 res.status(204).json(pagamento);
             }
         });
+    };
 
-        connection.end();
-    });
-
-    // Cadastrar novo pagamento -> cadastra um pagamento com status criado
-    app.post(`${route + action}`, (req, res, next) => {
+    this.cadastra = (req, res, next) => {
         const pagamento = req.body;
+        const gravaPagamento = (pagamento) => {
+            console.log('gravando pagamento...');
+            this._pagamentoService.salva(pagamento, (error, result) => {
+                if (error) {
+                    console.log(`Erro ao inserir no banco: ${error}`);
+                    res.status(500).json(error);
+                } else {
+                    pagamento.id = result.insertId; // atualiza o pagamento com o id gravado no banco
+                    console.log(`pagamento id:${pagamento.id} gravado com sucesso!`);
+                    res.status(201).json(pagamento);
+                }
+            });
+        };
 
         // validando pagamento
         req.assert("forma_de_pagamento", "Forma de pagamento é obrigatória.").notEmpty();
@@ -136,37 +130,33 @@ module.exports = (app) => {
         switch (pagamento.forma_de_pagamento) {
             case "cartao":
                 console.log('Processando pagamento cartao...');
-                const cartaoService = new app.services.cartoesService();
-                cartaoService.autoriza(pagamento.cartao, (error, response) => {
+                this._validaPagamentoCartao(pagamento.cartao, (error, response) => {
                     if (error) {
+                        console.log('Pagamento cartao inválido.');
                         res.status(error.statusCode || 500).json(error.msgError);
-                        return next(error);
+                        return next(error.msgError);
                     }
 
-                    res.json(response);
+                    console.log('Pagamento cartao aprovado!');
+                    gravaPagamento(pagamento);
                     return;
                 });
                 break;
+
             default:
-                res.json(pagamento);
+                gravaPagamento(pagamento);
         }
+    };
 
 
-        // const connection = app.models.pagamentoFactory();
-        // const pagamentoDAO = new app.models.pagamentoDAO(connection);
+    this._validaPagamentoCartao = (cartao, callback) => {
+        const cartaoService = new app.services.cartoesService();
+        cartaoService.autoriza(cartao, callback);
+    };
 
-        // pagamentoDAO.salva(pagamento, (error, result) => {
-        //     if (error) {
-        //         console.log(`Erro ao inserir no banco: ${error}`);
-        //         res.status(500).json(error);
-        //     } else {
-        //         res.location(`${route + action}/${result.insertId}`);
-        //         pagamento.id = result.insertId; // atualiza o pagamento com o id gravado no banco
-        //         res.status(201).json(pagamento);
-        //     }
-        // });
+    return this;
+}
 
-        // connection.end();
-        // res.json(pagamento);
-    });
+module.exports = () => {
+    return PagamentoController;
 }
