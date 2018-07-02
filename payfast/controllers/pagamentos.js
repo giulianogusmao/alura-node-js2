@@ -139,7 +139,7 @@ module.exports = (app) => {
                 const cartaoService = new app.services.cartoesService();
                 cartaoService.autoriza(pagamento.cartao, (error, response) => {
                     if (error) {
-                        res.status(error.statusCode).json(error.msgError);
+                        res.status(error.statusCode || 500).json(error.msgError);
                         return next(error);
                     }
 

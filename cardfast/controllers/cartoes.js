@@ -76,6 +76,6 @@ module.exports = (app) => {
             console.log(JSON.stringify(response));
             console.log('Autorizado!\n');
             res.json(response);
-        }, 2000);
+        }, 300);
     });
 }

@@ -1,15 +1,14 @@
 const http = require('http');
 
-function CartoesService() {
-    this._config = {
-        hostname: 'http://localhost',
-        port: '3001',
-        headers: {
-            // 'Accept': 'application/json',
-            'Content-Type': 'application/json'
-        },
-    };
-}
+const urlConfig = {
+    hostname: 'localhost',
+    port: '3001',
+    headers: {
+        'Content-Type': 'application/json'
+    },
+};
+
+function CartoesService() { }
 
 function bufferToJson(buffer) {
     return JSON.parse(buffer.toString());
@@ -17,15 +16,10 @@ function bufferToJson(buffer) {
 
 CartoesService.prototype.autoriza = (cartao, callback) => {
     // configura requisição
-    const config = {
-        hostname: 'localhost',
-        port: '3001',
-        headers: {
-            'Content-Type': 'application/json'
-        },
+    const config = Object.assign({}, urlConfig, {
         method: 'post',
         path: '/cartoes/autoriza'
-    };
+    });
 
     // cria requisição
     const req = http.request(config, (res) => {
@@ -33,11 +27,12 @@ CartoesService.prototype.autoriza = (cartao, callback) => {
             res.on('data', (body) => {
                 callback(null, bufferToJson(body));
             });
-        } else {
-            res.on('data', (body) => {
-                callback({ msgError: bufferToJson(body), statusCode: res.statusCode });
-            });
+            return;
         }
+
+        res.on('data', (error) => {
+            callback({ msgError: bufferToJson(error), statusCode: res.statusCode });
+        });
     });
 
     // envia requisição
