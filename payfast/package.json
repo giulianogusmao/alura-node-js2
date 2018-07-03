@@ -7,6 +7,8 @@
     "node": "8.11.2"
   },
   "scripts": {
+    "copyimg": "node ./util/fileReader",
+    "copyimg2": "node ./util/streamReader",
     "start": "nodemon index",
     "nodemon": "nodemon",
     "test": "echo \"Error: no test specified\" && exit 1"
