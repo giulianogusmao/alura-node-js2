@@ -6,13 +6,15 @@ const pagamentoStatus = {
 
 function PagamentoController(app) {
     this._pagamentoService = new app.services.pagamentosService(app);
+    const logger = app.services.loggerService;
 
     // Lista todos os pagamentos
-    this.lista = (req, res, next) => {
+    this.lista = (req, res) => {
         this._pagamentoService.lista((error, result) => {
             if (error) {
                 res.status(500).json({ error });
-                return next(error);
+                logger.error(error);
+                return;
             }
 
             res.json(result);
@@ -22,6 +24,7 @@ function PagamentoController(app) {
     // Detalhe do pagamento :id
     this.detalhe = (req, res, next) => {
         const id = req.params.id;
+        logger.info(`consultando pagamento id: ${id}`);
 
         req.assert('id', 'ID não é válido').isFloat();
         const errors = req.validationErrors();
