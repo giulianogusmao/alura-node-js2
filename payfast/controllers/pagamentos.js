@@ -1,3 +1,9 @@
+const pagamentoStatus = {
+    criado: 'CRIADO',
+    confirmado: 'CONFIRMADO',
+    cancelado: 'CANCELADO'
+};
+
 function PagamentoController(app) {
     this._pagamentoService = new app.services.pagamentosService(app);
 
@@ -49,7 +55,7 @@ function PagamentoController(app) {
 
         const pagamento = {
             id,
-            status: 'CONFIRMADO',
+            status: pagamentoStatus.confirmado,
             data: new Date
         };
 
@@ -78,7 +84,7 @@ function PagamentoController(app) {
 
         const pagamento = {
             id,
-            status: 'CANCELADO',
+            status: pagamentoStatus.cancelado,
             data: new Date
         };
 
@@ -109,9 +115,9 @@ function PagamentoController(app) {
         };
 
         // validando pagamento
-        req.assert("forma_de_pagamento", "Forma de pagamento é obrigatória.").notEmpty();
-        req.assert("valor", "Valor é obrigatório e deve ser um decimal.").notEmpty().isFloat();
-        req.assert("moeda", "Moeda é obrigatória e deve ter 3 caracteres").notEmpty().len(3, 3);
+        req.assert('forma_de_pagamento', 'Forma de pagamento é obrigatória.').notEmpty();
+        req.assert('valor', 'Valor é obrigatório e deve ser um decimal.').notEmpty().isFloat();
+        req.assert('moeda', 'Moeda é obrigatória e deve ter 3 caracteres').notEmpty().len(3, 3);
         const errors = req.validationErrors();
 
         if (errors) {
@@ -124,11 +130,18 @@ function PagamentoController(app) {
          * altera o status do pagamento para criado, atualiza data do pagamento
          * e realiza o cadastro;
          */
-        pagamento.status = "CRIADO";
-        pagamento.data = new Date;
+        pagamentoNovo = {
+            id: pagamento.id,
+            forma_de_pagamento: pagamento.forma_de_pagamento,
+            valor: pagamento.valor,
+            moeda: pagamento.moeda,
+            status: pagamentoStatus.criado,
+            data: new Date,
+            descricao: pagamento.descricao,
+        };
 
         switch (pagamento.forma_de_pagamento) {
-            case "cartao":
+            case 'cartao':
                 console.log('Processando pagamento cartao...');
                 this._validaPagamentoCartao(pagamento.cartao, (error, response) => {
                     if (error) {
@@ -138,16 +151,15 @@ function PagamentoController(app) {
                     }
 
                     console.log('Pagamento cartao aprovado!');
-                    gravaPagamento(pagamento);
+                    gravaPagamento(pagamentoNovo);
                     return;
                 });
                 break;
 
             default:
-                gravaPagamento(pagamento);
+                gravaPagamento(pagamentoNovo);
         }
     };
-
 
     this._validaPagamentoCartao = (cartao, callback) => {
         const cartaoService = new app.services.cartoesService();

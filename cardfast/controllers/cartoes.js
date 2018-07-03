@@ -2,19 +2,6 @@ module.exports = (app) => {
     var route = '/cartoes';
 
     app.get(route, (req, res, next) => {
-        // const connection = app.models.cartaoFactory();
-        // const cartaoDAO = new app.models.cartaoDAO(connection);
-
-        // cartaoDAO.lista((error, result) => {
-        //     if (error) {
-        //         res.status(500).json({ error });
-        //         return next(error);
-        //     }
-
-        //     res.json(result);
-        // });
-
-        // connection.end();
         res.json([]);
     });
 
@@ -45,32 +32,11 @@ module.exports = (app) => {
 
         console.log('processando...');
 
-        /**
-         * Após realizar todas as validações
-         * altera o status do cartao para criado, atualiza data do cartao
-         * e realiza o cadastro;
-         */
         let response = {
             cartao,
             status: 'AUTORIZADO',
             data: new Date,
         };
-
-        // const connection = app.models.cartaoFactory();
-        // const cartaoDAO = new app.models.cartaoDAO(connection);
-
-        // cartaoDAO.salva(cartao, (error, result) => {
-        //     if (error) {
-        //         console.log(`Erro ao inserir no banco: ${error}`);
-        //         res.status(500).json(error);
-        //     } else {
-        //         res.location(`${route + action}/${result.insertId}`);
-        //         cartao.id = result.insertId; // atualiza o cartao com o id gravado no banco
-        //         res.status(201).json(cartao);
-        //     }
-        // });
-
-        // connection.end();
 
         setTimeout(() => {
             console.log(JSON.stringify(response));
