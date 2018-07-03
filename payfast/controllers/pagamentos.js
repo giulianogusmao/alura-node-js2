@@ -31,12 +31,36 @@ function PagamentoController(app) {
             return next(errors);
         }
 
-        this._pagamentoService.buscaById(id, (error, result) => {
-            if (error) {
-                console.log(`Erro ao consultar no banco: ${error}`);
-                res.status(500).json(error);
+        /**
+         * Antes de realizar a busca no banco de dados, verifica se a informação está no cache;
+         * instancia memcachedClient e verifica se o ID já está no cache
+         */
+        const memcachedClient = app.services.memcachedClient();
+        memcachedClient.get('pagamento-' + id, (erro, retorno) => {
+            if (erro || !retorno) {
+                console.log('MISS - chave nao encontrada');
+
+                this._pagamentoService.buscaById(id, (error, result) => {
+                    if (error) {
+                        console.log(`Erro ao consultar no banco: ${error}`);
+                        res.status(500).json(error);
+                    } else {
+                        const pagamento = (result || [{}]).pop();
+
+                        // adiciona pagamento ao cache para que o próximo pagamento venha diretamento do cache
+                        memcachedClient.set('pagamento-' + pagamento.id, pagamento, 1000, function (err) {
+                            console.log('nova chave: pagamento-' + pagamento.id)
+                        });
+
+                        res.status(200).json(pagamento);
+                    }
+                    return;
+                });
+
             } else {
-                res.status(200).json((result || [{}]).pop());
+                console.log('HIT - chave encontrada ' + JSON.stringify(retorno));
+                res.json(retorno);
+                return;
             }
         });
     };
@@ -109,6 +133,12 @@ function PagamentoController(app) {
                 } else {
                     pagamento.id = result.insertId; // atualiza o pagamento com o id gravado no banco
                     console.log(`pagamento id:${pagamento.id} gravado com sucesso!`);
+
+                    // ISERINDO NO CACHE
+                    app.services.memcachedClient().set('pagamento-' + pagamento.id, pagamento, 1000, function (err) {
+                        console.log('nova chave: pagamento-' + pagamento.id)
+                    });
+
                     res.status(201).json(pagamento);
                 }
             });
